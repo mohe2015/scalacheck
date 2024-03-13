@@ -13,6 +13,10 @@ import scala.annotation.nowarn
 import scala.scalanative.reflect.Reflect
 
 import Test._
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContextExecutor
+import scala.concurrent.Await
 
 private[scalacheck] object Platform {
 
@@ -23,6 +27,10 @@ private[scalacheck] object Platform {
       stop: () => Unit
   ): Result = {
     workerFun(0)
+  }
+
+  def runParCmds[T](size: Int, future: (ExecutionContext) => Future[T]): T = {
+    throw new UnsupportedOperationException("can't run parallel commands on native")
   }
 
   @nowarn("msg=is never used")

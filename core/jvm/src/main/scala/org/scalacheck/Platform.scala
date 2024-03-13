@@ -12,6 +12,12 @@ package org.scalacheck
 import scala.annotation.nowarn
 
 import Test._
+import org.scalacheck.commands.Commands
+import scala.util.Try
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContextExecutor
+import scala.concurrent.ExecutionContext
+import scala.concurrent.Await
 
 private[scalacheck] object Platform {
 
@@ -62,6 +68,15 @@ private[scalacheck] object Platform {
         tp.shutdown()
       }
     }
+  }
+
+  def runParCmds[T](size: Int, future: (ExecutionContext) => Future[T]): T = {
+    val tp = java.util.concurrent.Executors.newFixedThreadPool(size)
+    implicit val ec: ExecutionContextExecutor = ExecutionContext.fromExecutor(tp)
+    try {
+      val res = future(ec)
+      Await.result(res, concurrent.duration.Duration.Inf)
+    } finally { tp.shutdown() }
   }
 
   @nowarn("msg=is never used")

@@ -300,8 +300,6 @@ trait Commands {
 
   private def runParCmds(sut: Sut, s: State, pcmds: List[Commands]): (Prop, List[List[(Command, Try[String])]]) = {
     import concurrent._
-    val tp = java.util.concurrent.Executors.newFixedThreadPool(pcmds.size)
-    implicit val ec: ExecutionContextExecutor = ExecutionContext.fromExecutor(tp)
     val memo = collection.mutable.Map.empty[(State, List[Commands]), List[State]]
 
     def endStates(scss: (State, List[Commands])): List[State] = {
@@ -320,8 +318,8 @@ trait Commands {
           states
       }
     }
-
-    def run(endStates: List[State], cs: Commands): Future[(Prop, List[(Command, Try[String])])] = Future {
+    
+    def run(endStates: List[State], cs: Commands)(implicit ec: ExecutionContext): Future[(Prop, List[(Command, Try[String])])] = Future {
       if (cs.isEmpty) (Prop.proved, Nil)
       else blocking {
         val rs = cs.init.map(_.runPC(sut)._1)
@@ -329,14 +327,13 @@ trait Commands {
         (Prop.atLeastOne(endStates.map(pf): _*), cs.zip(rs :+ r))
       }
     }
-
-    try {
-      val res = Future.traverse(pcmds)(run(endStates(s -> pcmds), _)) map { l =>
+    
+    Platform.runParCmds(pcmds.size, (ec) => {
+      implicit val ecc: ExecutionContext = ec;
+      Future.traverse(pcmds)(run(endStates(s -> pcmds), _)) map { l =>
         val (ps, rs) = l.unzip
         (Prop.atLeastOne(ps: _*), rs)
-      }
-      Await.result(res, concurrent.duration.Duration.Inf)
-    } finally { tp.shutdown() }
+      }})
   }
 
   /** Formats a list of commands with corresponding results */
