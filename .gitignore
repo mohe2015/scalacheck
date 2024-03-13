@@ -16,3 +16,12 @@ target/
 
 # bloop
 /.bsp/
+
+# Metals
+.metals/
+.bloop/
+.ammonite/
+metals.sbt
+
+# vscode
+.vscode/settings.json
